@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+<meta name="theme-color" content="#000">
+
+<title>DocScan Auto</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+  margin:0;
+  width:100%;
+  min-height:100%;
+  background:#111;
+  color:#fff;
+  font-family:-apple-system,BlinkMacSystemFont,
+              "SF Pro Display","Segoe UI",sans-serif;
+}
+
+button{
+  font:inherit;
+}
+
+/* =========================
+HOME
+========================= */
+
+header{
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:21px;
+  font-weight:700;
+}
+
+#status{
+  text-align:center;
+  color:#aaa;
+  font-size:13px;
+  min-height:35px;
+  padding:7px 15px 10px;
+}
+
+.toolbar{
+  display:flex;
+  gap:10px;
+  padding:0 14px 14px;
+}
+
+.action,
+.fileButton{
+  flex:1;
+  border:0;
+  border-radius:14px;
+  padding:14px 10px;
+  background:#252525;
+  color:white;
+  text-align:center;
+  font-size:16px;
+  font-weight:600;
+}
+
+.action.primary{
+  background:white;
+  color:#111;
+}
+
+.fileButton input{
+  display:none;
+}
+
+#pages{
+  padding:8px 14px 100px;
+}
+
+.page{
+  position:relative;
+  margin-bottom:18px;
+  overflow:hidden;
+  border-radius:14px;
+  background:#222;
+}
+
+.page img{
+  display:block;
+  width:100%;
+}
+
+.pageNumber{
+  position:absolute;
+  top:10px;
+  left:10px;
+  padding:6px 10px;
+  border-radius:20px;
+  background:rgba(0,0,0,.7);
+  font-size:13px;
+}
+
+.remove{
+  position:absolute;
+  top:10px;
+  right:10px;
+  width:38px;
+  height:38px;
+  border:0;
+  border-radius:50%;
+  background:rgba(0,0,0,.75);
+  color:white;
+  font-size:22px;
+}
+
+.empty{
+  text-align:center;
+  color:#777;
+  padding:80px 25px;
+  font-size:16px;
+}
+
+#bottom{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+
+  display:flex;
+  gap:10px;
+
+  padding:
+    10px 14px
+    calc(10px + env(safe-area-inset-bottom));
+
+  background:rgba(17,17,17,.95);
+
+  backdrop-filter:blur(15px);
+
+  z-index:20;
+}
+
+#bottom button{
+  flex:1;
+  border:0;
+  border-radius:14px;
+  padding:13px;
+  background:#252525;
+  color:white;
+  font-weight:600;
+}
+
+#bottom .primary{
+  background:white;
+  color:#111;
+}
+
+#bottom button:disabled{
+  opacity:.4;
+}
+
+
+/* =========================
+CAMERA
+========================= */
+
+#camera{
+  position:fixed;
+  inset:0;
+
+  display:none;
+  flex-direction:column;
+
+  background:#000;
+
+  z-index:100;
+}
+
+#camera.open{
+  display:flex;
+}
+
+#cameraTop{
+  height:70px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  padding:0 16px;
+
+  background:#000;
+}
+
+.close{
+  width:44px;
+  height:44px;
+
+  border:0;
+  border-radius:50%;
+
+  background:#222;
+  color:white;
+
+  font-size:28px;
+}
+
+.cameraTitle{
+  font-size:18px;
+  font-weight:700;
+}
+
+#viewport{
+  position:relative;
+  flex:1;
+  overflow:hidden;
+  background:#000;
+}
+
+#video{
+  position:absolute;
+  inset:0;
+
+  width:100%;
+  height:100%;
+
+  object-fit:cover;
+}
+
+#frameCanvas{
+  display:none;
+}
+
+#overlay{
+  position:absolute;
+  inset:0;
+
+  width:100%;
+  height:100%;
+
+  pointer-events:none;
+}
+
+#quad{
+  fill:rgba(0,224,176,.07);
+
+  stroke:#00e0b0;
+
+  stroke-width:5;
+
+  stroke-linejoin:round;
+
+  opacity:0;
+}
+
+#quad.found{
+  opacity:1;
+}
+
+#hint{
+  position:absolute;
+
+  left:0;
+  right:0;
+  bottom:20px;
+
+  text-align:center;
+
+  color:white;
+
+  font-size:14px;
+
+  text-shadow:
+    0 1px 5px #000,
+    0 0 8px #000;
+
+  pointer-events:none;
+}
+
+#cameraBottom{
+  position:relative;
+
+  height:135px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  background:#000;
+}
+
+#shutter{
+  width:78px;
+  height:78px;
+
+  border-radius:50%;
+
+  border:5px solid #00e0b0;
+
+  background:white;
+
+  box-shadow:
+    0 0 0 3px rgba(0,224,176,.18);
+}
+
+#shutter:active{
+  transform:scale(.94);
+}
+
+#shutter:disabled{
+  opacity:.4;
+}
+
+#cameraGallery{
+  position:absolute;
+
+  left:25px;
+
+  width:52px;
+  height:52px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:14px;
+
+  background:#222;
+
+  font-size:24px;
+}
+
+#cameraGallery input{
+  display:none;
+}
+
+</style>
+</head>
+
+
+<body>
+
+
+<!-- ==================================================
+HOME
+================================================== -->
+
+<div id="home">
+
+<header>
+DocScan Auto
+</header>
+
+<div id="status">
+Bấm "Chụp tài liệu"
+</div>
+
+<div class="toolbar">
+
+<button
+  id="openCamera"
+  class="action primary">
+
+📷 Chụp tài liệu
+
+</button>
+
+
+<label class="fileButton">
+
+🖼️ Thư viện
+
+<input
+  id="galleryInput"
+  type="file"
+  accept="image/*"
+  multiple>
+
+</label>
+
+</div>
+
+
+<div id="pages">
+
+<div class="empty">
+
+Chưa có tài liệu
+
+<br>
+
+<small>
+Chụp → tự tìm 4 góc → tự căn thẳng.
+</small>
+
+</div>
+
+</div>
+
+
+<div id="bottom">
+
+<button
+  id="clearBtn"
+  disabled>
+
+Xóa hết
+
+</button>
+
+
+<button
+  id="pdfBtn"
+  class="primary"
+  disabled>
+
+📄 Xuất PDF
+
+</button>
+
+</div>
+
+</div>
+
+
+
+<!-- ==================================================
+CAMERA
+================================================== -->
+
+<div id="camera">
+
+<div id="cameraTop">
+
+<button
+  id="closeCamera"
+  class="close">
+
+×
+
+</button>
+
+
+<div class="cameraTitle">
+Quét tài liệu
+</div>
+
+
+<div style="width:44px"></div>
+
+</div>
+
+
+<div id="viewport">
+
+<video
+  id="video"
+  autoplay
+  muted
+  playsinline>
+</video>
+
+
+<canvas
+  id="frameCanvas">
+</canvas>
+
+
+<svg
+  id="overlay"
+  preserveAspectRatio="none">
+
+<polygon
+  id="quad"
+  points="">
+</polygon>
+
+</svg>
+
+
+<div id="hint">
+
+Đưa toàn bộ giấy vào khung
+
+</div>
+
+</div>
+
+
+<div id="cameraBottom">
+
+
+<label id="cameraGallery">
+
+🖼️
+
+<input
+  id="cameraGalleryInput"
+  type="file"
+  accept="image/*"
+  multiple>
+
+</label>
+
+
+<button
+  id="shutter">
+
+</button>
+
+</div>
+
+</div>
+
+
+
+<script type="module">
+
+import {
+  scanDocument
+}
+from
+"https://cdn.jsdelivr.net/npm/scanic@1.6.0/dist/scanic.js";
+
+
+
+/* ==================================================
+STATE
+================================================== */
+
+let pages = [];
+
+let stream = null;
+
+let cameraRunning = false;
+
+let detecting = false;
+
+let detectionTimer = null;
+
+
+
+/* ==================================================
+ELEMENTS
+================================================== */
+
+const statusEl =
+document.getElementById("status");
+
+const pagesEl =
+document.getElementById("pages");
+
+const openCamera =
+document.getElementById("openCamera");
+
+const closeCamera =
+document.getElementById("closeCamera");
+
+const camera =
+document.getElementById("camera");
+
+const video =
+document.getElementById("video");
+
+const frameCanvas =
+document.getElementById("frameCanvas");
+
+const overlay =
+document.getElementById("overlay");
+
+const quad =
+document.getElementById("quad");
+
+const hint =
+document.getElementById("hint");
+
+const shutter =
+document.getElementById("shutter");
+
+const galleryInput =
+document.getElementById("galleryInput");
+
+const cameraGalleryInput =
+document.getElementById("cameraGalleryInput");
+
+const clearBtn =
+document.getElementById("clearBtn");
+
+const pdfBtn =
+document.getElementById("pdfBtn");
+
+
+
+/* ==================================================
+STATUS
+================================================== */
+
+function setStatus(text){
+
+statusEl.textContent = text;
+
+}
+
+
+
+/* ==================================================
+GET VIDEO FRAME
+================================================== */
+
+function captureFrame(){
+
+const canvas =
+frameCanvas;
+
+canvas.width =
+video.videoWidth;
+
+canvas.height =
+video.videoHeight;
+
+
+const ctx =
+canvas.getContext("2d");
+
+ctx.drawImage(
+video,
+0,
+0,
+canvas.width,
+canvas.height
+);
+
+
+return canvas;
+
+}
+
+
+
+/* ==================================================
+NORMALIZE CORNERS
+================================================== */
+
+function normalizeCorners(corners){
+
+if(!corners){
+
+return null;
+
+}
+
+
+function p(v){
+
+if(Array.isArray(v)){
+
+return {
+x:Number(v[0]),
+y:Number(v[1])
+};
+
+}
+
+return {
+x:Number(v.x),
+y:Number(v.y)
+};
+
+}
+
+
+if(
+corners.topLeft &&
+corners.topRight &&
+corners.bottomRight &&
+corners.bottomLeft
+){
+
+return [
+
+p(corners.topLeft),
+
+p(corners.topRight),
+
+p(corners.bottomRight),
+
+p(corners.bottomLeft)
+
+];
+
+}
+
+
+if(
+Array.isArray(corners) &&
+corners.length === 4
+){
+
+return corners.map(p);
+
+}
+
+
+return null;
+
+}
+
+
+
+/* ==================================================
+DRAW LIVE FRAME
+================================================== */
+
+function drawLiveCorners(corners){
+
+if(
+!corners ||
+!video.videoWidth
+){
+
+quad.classList.remove("found");
+
+return;
+
+}
+
+
+overlay.setAttribute(
+"viewBox",
+`0 0 ${video.videoWidth} ${video.videoHeight}`
+);
+
+
+quad.setAttribute(
+"points",
+corners
+.map(
+p => `${p.x},${p.y}`
+)
+.join(" ")
+);
+
+
+quad.classList.add("found");
+
+}
+
+
+
+/* ==================================================
+LIVE DETECTION
+================================================== */
+
+async function detectLive(){
+
+if(
+!cameraRunning ||
+detecting ||
+video.readyState < 2
+){
+
+return;
+
+}
+
+
+detecting = true;
+
+
+try{
+
+const frame =
+captureFrame();
+
+
+const result =
+await scanDocument(
+frame,
+{
+mode:"detect",
+
+detector:"ml",
+
+maxProcessingDimension:800,
+
+ml:{
+minScore:0.30
+}
+
+}
+);
+
+
+if(
+result &&
+result.success
+){
+
+const corners =
+normalizeCorners(
+result.corners
+);
+
+
+if(corners){
+
+drawLiveCorners(
+corners
+);
+
+hint.textContent =
+"✓ Đã nhận diện — bạn có thể bấm chụp";
+
+}
+
+}
+else{
+
+quad.classList.remove(
+"found"
+);
+
+hint.textContent =
+"Đưa toàn bộ giấy vào khung";
+
+}
+
+}
+catch(error){
+
+console.log(
+"Live detector:",
+error
+);
+
+}
+finally{
+
+detecting = false;
+
+}
+
+}
+
+
+
+/* ==================================================
+START LIVE DETECTION
+================================================== */
+
+function startLiveDetection(){
+
+stopLiveDetection();
+
+
+detectionTimer =
+setInterval(
+detectLive,
+500
+);
+
+}
+
+
+
+/* ==================================================
+STOP LIVE DETECTION
+================================================== */
+
+function stopLiveDetection(){
+
+if(detectionTimer){
+
+clearInterval(
+detectionTimer
+);
+
+detectionTimer =
+null;
+
+}
+
+}
+
+
+
+/* ==================================================
+OPEN CAMERA
+================================================== */
+
+async function startCamera(){
+
+try{
+
+camera.classList.add(
+"open"
+);
+
+
+hint.textContent =
+"Đang mở camera…";
+
+
+stream =
+await navigator.mediaDevices.getUserMedia({
+
+video:{
+
+facingMode:{
+ideal:"environment"
+},
+
+width:{
+ideal:1920
+},
+
+height:{
+ideal:1080
+}
+
+},
+
+audio:false
+
+});
+
+
+video.srcObject =
+stream;
+
+
+await video.play();
+
+
+cameraRunning =
+true;
+
+
+shutter.disabled =
+false;
+
+
+hint.textContent =
+"Đưa toàn bộ giấy vào khung";
+
+
+setStatus(
+"Camera sẵn sàng"
+);
+
+
+startLiveDetection();
+
+}
+catch(error){
+
+console.error(error);
+
+
+camera.classList.remove(
+"open"
+);
+
+
+setStatus(
+"❌ Không mở được camera"
+);
+
+}
+
+}
+
+
+
+/* ==================================================
+CLOSE CAMERA
+================================================== */
+
+function stopCamera(){
+
+cameraRunning =
+false;
+
+
+stopLiveDetection();
+
+
+if(stream){
+
+stream
+.getTracks()
+.forEach(
+track =>
+track.stop()
+);
+
+stream =
+null;
+
+}
+
+
+video.srcObject =
+null;
+
+
+quad.classList.remove(
+"found"
+);
+
+
+camera.classList.remove(
+"open"
+);
+
+}
+
+
+
+/* ==================================================
+ACTUAL SCAN
+================================================== */
+
+async function processCapturedFrame(){
+
+const frame =
+captureFrame();
+
+
+/*
+==================================================
+1. ML DETECTOR
+==================================================
+*/
+
+try{
+
+hint.textContent =
+"🤖 Đang tìm 4 góc…";
+
+
+const mlResult =
+await scanDocument(
+frame,
+{
+
+mode:"extract",
+
+detector:"ml",
+
+output:"canvas",
+
+maxProcessingDimension:2400,
+
+ml:{
+minScore:0.25
+}
+
+}
+);
+
+
+if(
+mlResult &&
+mlResult.success &&
+mlResult.output
+){
+
+return mlResult.output;
+
+}
+
+}
+catch(error){
+
+console.log(
+"ML failed:",
+error
+);
+
+}
+
+
+
+/*
+==================================================
+2. CLASSICAL DETECTOR
+==================================================
+*/
+
+hint.textContent =
+"🔎 Đang thử nhận diện dự phòng…";
+
+
+try{
+
+const classicalResult =
+await scanDocument(
+frame,
+{
+
+mode:"extract",
+
+output:"canvas",
+
+maxProcessingDimension:2400,
+
+lowThreshold:30,
+
+highThreshold:120,
+
+dilationKernelSize:7,
+
+minArea:1500
+
+}
+);
+
+
+if(
+classicalResult &&
+classicalResult.success &&
+classicalResult.output
+){
+
+return classicalResult.output;
+
+}
+
+}
+catch(error){
+
+console.log(
+"Classical failed:",
+error
+);
+
+}
+
+
+return null;
+
+}
+
+
+
+/* ==================================================
+SHUTTER
+================================================== */
+
+async function takePhoto(){
+
+if(
+!cameraRunning ||
+!video.videoWidth
+){
+
+return;
+
+}
+
+
+/*
+IMPORTANT:
+
+Không phụ thuộc realtime
+detection.
+
+Bấm nút = luôn chụp.
+*/
+
+shutter.disabled =
+true;
+
+
+stopLiveDetection();
+
+
+quad.classList.remove(
+"found"
+);
+
+
+hint.textContent =
+"📸 Đã chụp — đang xử lý…";
+
+
+try{
+
+const output =
+await processCapturedFrame();
+
+
+if(!output){
+
+hint.textContent =
+"❌ Không tìm được 4 góc. Hãy thử đưa giấy rõ hơn.";
+
+return;
+
+}
+
+
+const dataUrl =
+output.toDataURL(
+"image/jpeg",
+0.90
+);
+
+
+pages.push(
+dataUrl
+);
+
+
+renderPages();
+
+
+setStatus(
+`✅ Đã quét trang ${pages.length}`
+);
+
+
+hint.textContent =
+"✓ Đã xong — đưa trang tiếp theo vào";
+
+
+/*
+Chụp xong vẫn giữ camera mở
+để quét trang tiếp theo.
+*/
+
+startLiveDetection();
+
+}
+catch(error){
+
+console.error(error);
+
+
+hint.textContent =
+"❌ Có lỗi khi xử lý ảnh";
+
+startLiveDetection();
+
+}
+finally{
+
+shutter.disabled =
+false;
+
+}
+
+}
+
+
+
+/* ==================================================
+FILE → IMAGE
+================================================== */
+
+function fileToImage(file){
+
+return new Promise(
+(resolve,reject)=>{
+
+const url =
+URL.createObjectURL(file);
+
+
+const img =
+new Image();
+
+
+img.onload = ()=>{
+
+URL.revokeObjectURL(
+url
+);
+
+resolve(img);
+
+};
+
+
+img.onerror = ()=>{
+
+URL.revokeObjectURL(
+url
+);
+
+reject(
+new Error(
+"Không đọc được ảnh"
+)
+);
+
+};
+
+
+img.src =
+url;
+
+}
+);
+
+}
+
+
+
+/* ==================================================
+GALLERY SCAN
+================================================== */
+
+async function scanFile(file){
+
+try{
+
+setStatus(
+"Đang tự động cắt và căn thẳng…"
+);
+
+
+const image =
+await fileToImage(
+file
+);
+
+
+let result =
+null;
+
+
+/*
+ML
+*/
+
+try{
+
+result =
+await scanDocument(
+image,
+{
+
+mode:"extract",
+
+detector:"ml",
+
+output:"canvas",
+
+maxProcessingDimension:2400,
+
+ml:{
+minScore:0.25
+}
+
+}
+);
+
+}
+catch(error){
+
+console.log(
+"Gallery ML:",
+error
+);
+
+}
+
+
+/*
+Classical fallback
+*/
+
+if(
+!result ||
+!result.success ||
+!result.output
+){
+
+result =
+await scanDocument(
+image,
+{
+
+mode:"extract",
+
+output:"canvas",
+
+maxProcessingDimension:2400,
+
+lowThreshold:30,
+
+highThreshold:120,
+
+dilationKernelSize:7,
+
+minArea:1500
+
+}
+);
+
+}
+
+
+if(
+!result ||
+!result.success ||
+!result.output
+){
+
+setStatus(
+"❌ Không tìm thấy đủ 4 góc"
+);
+
+return;
+
+}
+
+
+pages.push(
+result.output.toDataURL(
+"image/jpeg",
+0.90
+)
+);
+
+
+renderPages();
+
+
+setStatus(
+"✅ Đã tự động cắt và căn thẳng"
+);
+
+}
+catch(error){
+
+console.error(error);
+
+setStatus(
+"❌ Không xử lý được ảnh"
+);
+
+}
+
+}
+
+
+
+/* ==================================================
+RENDER PAGES
+================================================== */
+
+function renderPages(){
+
+pagesEl.innerHTML =
+"";
+
+
+if(!pages.length){
+
+pagesEl.innerHTML = `
+
+<div class="empty">
+
+Chưa có tài liệu
+
+<br>
+
+<small>
+Chụp → tự tìm 4 góc → tự căn thẳng.
+</small>
+
+</div>
+
+`;
+
+}
+else{
+
+pages.forEach(
+(src,index)=>{
+
+const box =
+document.createElement(
+"div"
+);
+
+
+box.className =
+"page";
+
+
+box.innerHTML = `
+
+<img src="${src}">
+
+<div class="pageNumber">
+Trang ${index + 1}
+</div>
+
+<button
+class="remove"
+onclick="removePage(${index})">
+
+×
+
+</button>
+
+`;
+
+
+pagesEl.appendChild(
+box
+);
+
+}
+);
+
+
+}
+
+
+clearBtn.disabled =
+!pages.length;
+
+pdfBtn.disabled =
+!pages.length;
+
+}
+
+
+
+/* ==================================================
+REMOVE
+================================================== */
+
+window.removePage =
+function(index){
+
+pages.splice(
+index,
+1
+);
+
+
+renderPages();
+
+
+setStatus(
+pages.length
+? `Đã giữ lại ${pages.length} trang`
+: "Chưa có tài liệu"
+);
+
+};
+
+
+
+/* ==================================================
+CLEAR
+================================================== */
+
+clearBtn.onclick =
+function(){
+
+if(
+!pages.length
+){
+
+return;
+
+}
+
+
+if(
+confirm(
+"Xóa toàn bộ tài liệu?"
+)
+){
+
+pages = [];
+
+renderPages();
+
+setStatus(
+"Đã xóa toàn bộ"
+);
+
+}
+
+};
+
+
+
+/* ==================================================
+PDF
+================================================== */
+
+pdfBtn.onclick =
+async function(){
+
+if(
+!pages.length
+){
+
+return;
+
+}
+
+
+try{
+
+setStatus(
+"Đang tạo PDF…"
+);
+
+
+const jsPDF =
+window.jspdf.jsPDF;
+
+
+let pdf =
+null;
+
+
+for(
+let i=0;
+i<pages.length;
+i++
+){
+
+const img =
+new Image();
+
+
+await new Promise(
+(resolve,reject)=>{
+
+img.onload =
+resolve;
+
+img.onerror =
+reject;
+
+img.src =
+pages[i];
+
+}
+);
+
+
+const width =
+img.naturalWidth;
+
+
+const height =
+img.naturalHeight;
+
+
+const orientation =
+width > height
+? "landscape"
+: "portrait";
+
+
+if(i === 0){
+
+pdf =
+new jsPDF({
+
+orientation,
+
+unit:"px",
+
+format:[
+width,
+height
+],
+
+compress:true
+
+});
+
+}
+else{
+
+pdf.addPage(
+[
+width,
+height
+],
+orientation
+);
+
+}
+
+
+pdf.addImage(
+pages[i],
+"JPEG",
+0,
+0,
+width,
+height,
+undefined,
+"FAST"
+);
+
+}
+
+
+const d =
+new Date();
+
+
+const filename =
+`DocScan-${d.getFullYear()}-${String(
+d.getMonth()+1
+).padStart(2,"0")}-${String(
+d.getDate()
+).padStart(2,"0")}.pdf`;
+
+
+pdf.save(
+filename
+);
+
+
+setStatus(
+"✅ PDF đã tạo xong"
+);
+
+}
+catch(error){
+
+console.error(error);
+
+setStatus(
+"❌ Không tạo được PDF"
+);
+
+}
+
+};
+
+
+
+/* ==================================================
+BUTTON EVENTS
+================================================== */
+
+openCamera.onclick =
+startCamera;
+
+
+closeCamera.onclick =
+stopCamera;
+
+
+shutter.onclick =
+takePhoto;
+
+
+
+/* ==================================================
+GALLERY
+================================================== */
+
+galleryInput.addEventListener(
+"change",
+async event => {
+
+const files =
+Array.from(
+event.target.files || []
+);
+
+
+for(
+const file of files
+){
+
+await scanFile(
+file
+);
+
+}
+
+
+event.target.value =
+"";
+
+}
+);
+
+
+
+/* ==================================================
+CAMERA GALLERY
+================================================== */
+
+cameraGalleryInput.addEventListener(
+"change",
+async event => {
+
+const files =
+Array.from(
+event.target.files || []
+);
+
+
+stopCamera();
+
+
+for(
+const file of files
+){
+
+await scanFile(
+file
+);
+
+}
+
+
+event.target.value =
+"";
+
+}
+);
+
+
+
+/* ==================================================
+INIT
+================================================== */
+
+renderPages();
+
+</script>
+
+</body>
+</html>
